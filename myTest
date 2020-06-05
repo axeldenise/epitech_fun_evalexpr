@@ -1,0 +1,171 @@
+#!/bin/zsh
+
+PrintBatteryTestName () {
+	echo ""
+	echo -e "\e[93m${1}\n"
+}
+
+# $1 -> expression | $2 -> expectedResult
+StartTest () {
+	if [ $2 = $3 ]
+	then
+		echo -e "\e[92mTest ${1}: PASSED"
+	else
+		echo -e "\e[91mTest ${1}: KO"
+	fi
+}
+
+CheckError () {
+	if [ $? -eq 84 ]
+	then
+		echo -e "\e[92mTest ${1}: PASSED"
+	else
+		echo -e "\e[91mTest ${1}: KO"
+	fi
+}
+
+PrintBatteryTestName "Simple Operator"
+
+test="$(./funEvalExpr "345")"
+StartTest "345" $test "345.00"
+
+test="$(./funEvalExpr "-42")"
+StartTest "-42" $test "-42.00"
+
+test="$(./funEvalExpr "3 + 4")"
+StartTest "3 + 4" $test "7.00"
+
+test="$(./funEvalExpr "3 + 5.34")"
+StartTest "3 + 5.34" $test "8.34" 
+
+test="$(./funEvalExpr "3 - 6")"
+StartTest "3 - 6" $test "-3.00"
+
+test="$(./funEvalExpr "98 - 34.24")"
+StartTest "98 - 34.24" $test "63.76"
+
+test="$(./funEvalExpr "3 * 4")"
+StartTest "3 * 4" $test "12.00"
+
+test="$(./funEvalExpr "3 * (-42)")"
+StartTest "3 * (-42)" $test "-126.00"
+
+test="$(./funEvalExpr "3 ^ 9")"
+StartTest "3 ^ 9" $test "19683.00"
+
+test="$(./funEvalExpr "124 ^ 0")"
+StartTest "124 ^ 0" $test "1.00"
+
+test="$(./funEvalExpr "9 / 3")"
+StartTest "9 / 3" $test "3.00"
+
+test="$(./funEvalExpr "512 / (-2)")"
+StartTest "512 / (-2)" $test "-256.00"
+
+PrintBatteryTestName "Multiple Operator"
+
+test="$(./funEvalExpr "3 + 2 * 5 + 6 / 3 + 7 * (-8) * 2 - 6")"
+StartTest "3 + 2 * 5 + 6 / 3 + 7 * (-8) * 2 - 6" $test "-103.00"
+
+test="$(./funEvalExpr "3 + 2 * 5 + 6 / 3 + 7 * (-8) * 2 - 6")"
+StartTest "3 + 2 * 5 + 6 / 3 + 7 * (-8) * 2 - 6" $test "-103.00"
+
+test="$(./funEvalExpr "2 * 3 ^ 4 * 2 * 1 ^ 6 * 4 ^ 2")"
+StartTest "2 * 3 ^ 4 * 2 * 1 ^ 6 * 4 ^ 2" $test "5184.00"
+
+test="$(./funEvalExpr "2 + 3 + 4 + 5 - 8 - 9 + 42 - 56 * 0")"
+StartTest "2 + 3 + 4 + 5 - 8 - 9 + 42 - 56 * 0" $test "39.00"
+
+test="$(./funEvalExpr "3 ^ 4 - 3 * 6 + 4 ^ 5 / 2 + 7 * 6 - 9 * 4")"
+StartTest "3 ^ 4 - 3 * 6 + 4 ^ 5 / 2 + 7 * 6 - 9 * 4" $test "581.00"
+
+PrintBatteryTestName "Multiple Operator with Parenthesis"
+
+test="$(./funEvalExpr "5 + 3 + ((((5)))) + 4")"
+StartTest "5 + 3 + ((((5)))) + 4" $test "17.00"
+
+test="$(./funEvalExpr "3 * (5 * 8 + 6 - 3) ^ (2)")"
+StartTest "3 * (5 * 8 + 6 - 3) ^ (2)" $test "5547.00"
+
+test="$(./funEvalExpr "3 * (5 * 8 + 6 - 3) ^ (2 * 5)")"
+StartTest "3 * (5 * 8 + 6 - 3) ^ (2 * 5)" $test "64834446939852747.00"
+
+test="$(./funEvalExpr "3 * (5 * 2 + 6 - 3) ^ (2 * 2)")"
+StartTest "3 * (5 * 2 + 6 - 3) ^ (2 * 2)" $test "85683.00"
+
+test="$(./funEvalExpr "3 * (5 * 2 + 6 - 3) ^ (2 * 2) * (2 * 3)")"
+StartTest "3 * (5 * 2 + 6 - 3) ^ (2 * 2) * (2 * 3)" $test "514098.00"
+
+test="$(./funEvalExpr "3 * 9 / 2 * (5 * 8 + 6 - 3) ^ (2 * 5) * (2 * 5) ^ 3")"
+StartTest "3 * 9 / 2 * (5 * 8 + 6 - 3) ^ (2 * 5) * (2 * 5) ^ 3" $test "291755011229337361500.00"
+
+test="$(./funEvalExpr "(2 * 5 * (2 * 5 *( 2 * 5 * (2 * 5)))) / (-2)")"
+StartTest "(2 * 5 * (2 * 5 *( 2 * 5 * (2 * 5)))) / (-2)" $test "-5000.00"
+
+test="$(./funEvalExpr "(3 + 2) - (2 + 5)")"
+StartTest "(3 + 2) - (2 + 5)" $test "-2.00"
+
+PrintBatteryTestName "Error management"
+
+./funEvalExpr "+ 2 + 4" > /dev/null
+CheckError "+ 2 + 4"
+
+./funEvalExpr "2 ++ 4" > /dev/null
+CheckError "2 ++ 4"
+
+./funEvalExpr "2 + 4 +" > /dev/null
+CheckError "2 + 4 +"
+
+./funEvalExpr "" > /dev/null
+CheckError "EmptyString"
+
+./funEvalExpr "a + b" > /dev/null
+CheckError "a + b"
+
+./funEvalExpr "a + b" > /dev/null
+CheckError "5 + 6 + 78a2"
+
+./funEvalExpr "5 + ()" > /dev/null
+CheckError "5 + ()"
+
+./funEvalExpr "5 + 3 ) + 4" > /dev/null
+CheckError "5 + 3 ) + 4"
+
+./funEvalExpr "5 + 3 (+ 4" > /dev/null
+CheckError "5 + 3 (+  4"
+
+./funEvalExpr "5 + 3 + ((((5))) + 4" > /dev/null
+CheckError "5 + 3 + ((((5))) + 4"
+
+./funEvalExpr "5 + 3 + 5 + 4 )" > /dev/null
+CheckError "5 + 3 + 5 + 4 )"
+
+./funEvalExpr "5 / 0" > /dev/null
+CheckError "5 / 0"
+
+./funEvalExpr "5 / 0" > /dev/null
+CheckError "3 * ) 4 + 5 ("
+
+./funEvalExpr "     " > /dev/null
+CheckError "     "
+
+./funEvalExpr "(" > /dev/null
+CheckError "("
+
+./funEvalExpr "()" > /dev/null
+CheckError "()"
+
+./funEvalExpr ")" > /dev/null
+CheckError ")"
+
+./funEvalExpr "+" > /dev/null
+CheckError "+"
+
+./funEvalExpr "() + () ^ ()" > /dev/null
+CheckError "() + () ^ ()"
+
+./funEvalExpr "Epitech" > /dev/null
+CheckError "Epitech"
+
+./funEvalExpr "Epitech + Epita" > /dev/null
+CheckError "Epitech + Epita"
